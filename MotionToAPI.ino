@@ -14,49 +14,60 @@
 #include <WiFiManager.h> //https://github.com/tzapu/WiFiManager
 #include <ESP8266HTTPClient.h>
 
-int LED = 12;
+int LED = 13;
+int otherled = 12;
 int sensor = 14;
 int val = 0;
-
+int ledState = LOW;
+int counter = 0;
 
 void setup() {
-  Serial.begin(19200);
-  WiFiManager wifimanager; //no hardcoded wifi password
-  wifimanager.autoConnect("Arduino"); //192.168.4.1
-  
-//  ConnectToWifi();
+  Serial.begin(19200); //The baudrate set at Tools -> Serial Monitor to print lines (handy for debugging)
+  WiFiManager wifimanager; //A wifimanager prevents a hardcoded wifi password in code
+  wifimanager.autoConnect("Arduino"); //connect to the wifi with the name "Arduino" and go to the following ip addres in the browser: 192.168.4.1
+
   pinMode(sensor,INPUT);
   pinMode(LED,OUTPUT); 
+  pinMode(otherled,OUTPUT);
+  
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  while (WiFi.status() == WL_CONNECTED) {    
+  while (WiFi.status() == WL_CONNECTED) {  
+    if(counter == 60)sendAliveCall();
+    sendWakeyCall();
+    addCounter();    
+  }
+}
+
+void addCounter(){
+  delay(1000);
+  counter++;  
+  Serial.println(counter);
+}
+
+void sendWakeyCall(){
   val = digitalRead(sensor);
   if(val == HIGH){
-    digitalWrite(LED,HIGH);
-    doApiCall("6042jp15Rmd", "Alive");
+    digitalWrite(LED,HIGH);    
     doApiCall("6042jp15Rmd", "WakeyWakey");
   }
   else {
   digitalWrite(LED,LOW);    
-    }
-  }
+    }  
 }
 
+void sendAliveCall()
+{
+  resetCounter();
+  ledState = !ledState;        
+  digitalWrite(otherled,ledState);
+  doApiCall("6042jp15Rmd", "Alive");
+}
 
-
-
-void ConnectToWifi() {
-  Serial.print("Connecting to WiFi");
-  WiFi.begin("De pizzahut","rcXvtdkc8wxd");
-
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);                   // Wait for a half second
-    Serial.print(".");            // Print dot untill connected
-  }
-
-  Serial.println("\nWifi connected!");
+void resetCounter(){
+  counter = 0;
 }
 
 void doApiCall(String IoT, String endpoint) {
